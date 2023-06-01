@@ -1,53 +1,37 @@
-import pyaudio
-import wave
 
-chunk = 1024  # Record in chunks of 1024 samples
-sample_format = pyaudio.paInt24  # 16 bits per sample
-channels = 1
-fs = 44100  # Record at 44100 samples per second
-seconds = 3
-filename = "output.wav"
 
-p = pyaudio.PyAudio()  # Create an interface to PortAudio
-#cnt = pyaudio.PyAudio().get_device_count()
 
-#for i in range(0, cnt):
-#    print(pyaudio.PyAudio().get_device_info_by_index(i))
-info = p.get_host_api_info_by_index(0)
-numdevices = info.get('deviceCount')
 
-for i in range(0, numdevices):
-    if (p.get_device_info_by_host_api_device_index(0, i).get('maxInputChannels')) > 0:
-        print("Input Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
 
-print('Recording')
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.io import wavfile
 
-stream = p.open(format=sample_format,
-                channels=channels,
-                rate=fs,
-                input_device_index=9,
-                frames_per_buffer=chunk,
-                input=True)
+plt.rcParams['figure.dpi'] = 100
+plt.rcParams['figure.figsize'] = (9, 7)
 
-frames = []  # Initialize array to store frames
+sampFreq, sound = wavfile.read('data/e1.wav')
+sound = sound / 2.0**15
 
-# Store data in chunks for 3 seconds
-for i in range(0, int(fs / chunk * seconds)):
-    data = stream.read(chunk)
-    frames.append(data)
 
-# Stop and close the stream 
-stream.stop_stream()
-stream.close()
-# Terminate the PortAudio interface
-p.terminate()
+length_in_s = sound.shape[0] / sampFreq
 
-print('Finished recording')
+fft_spectrum = np.fft.rfft(sound)
+freq = np.fft.rfftfreq(sound.size, d=1./sampFreq)
+fft_spectrum_abs = np.abs(fft_spectrum)
 
-# Save the recorded data as a WAV file
-wf = wave.open(filename, 'wb')
-wf.setnchannels(channels)
-wf.setsampwidth(p.get_sample_size(sample_format))
-wf.setframerate(fs)
-wf.writeframes(b''.join(frames))
-wf.close()
+for i,f in enumerate(fft_spectrum_abs):
+    if f > 800: #looking at amplitudes of the spikes higher than 350 
+        print('frequency = {} Hz with amplitude {} '.format(np.round(freq[i],1),  np.round(f)))
+
+for i,f in enumerate(freq):
+    if f < 21 or f > 20000:# (2)
+        fft_spectrum[i] = 0.0
+
+
+
+plt.plot(freq[:300], np.abs(fft_spectrum[:300]))
+plt.xlabel("frequency, Hz")
+plt.ylabel("Amplitude, units")
+plt.show()
+
