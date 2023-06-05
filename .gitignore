@@ -1,5 +1,8 @@
 /.vscode
-/libportaudio.a
+/cpp/libportaudio.a
 /output.wav
 /test
 /audio-analyzer
+/cpp/audio_analyzer
+/cpp/build/
+/cpp/lib/
